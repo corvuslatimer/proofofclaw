@@ -16,17 +16,8 @@ const json = (data: unknown, status = 200) =>
     headers: corsHeaders
   });
 
-function hashString(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function makeRng(seed?: string) {
-  let state = seed ? hashString(seed) : crypto.getRandomValues(new Uint32Array(1))[0];
+function makeRng() {
+  let state = crypto.getRandomValues(new Uint32Array(1))[0];
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
@@ -45,31 +36,44 @@ function pick<T>(rng: () => number, arr: T[]): T {
 
 function toNoisy(text: string, rng: () => number): string {
   const map: Record<string, string[]> = {
-    a: ["a", "A", "@"], e: ["e", "E", "3"], i: ["i", "I", "1"],
-    o: ["o", "O", "0"], s: ["s", "S", "5"], t: ["t", "T", "7"],
-    l: ["l", "L", "1"], b: ["b", "B", "8"]
+    a: ["a", "A", "@"],
+    e: ["e", "E", "3"],
+    i: ["i", "I", "1"],
+    o: ["o", "O", "0"],
+    s: ["s", "S", "5"],
+    t: ["t", "T", "7"]
   };
+
   let out = "";
   for (const ch of text) {
     const lower = ch.toLowerCase();
-    if (map[lower] && rng() < 0.45) out += pick(rng, map[lower]);
-    else out += rng() < 0.4 ? ch.toUpperCase() : ch.toLowerCase();
-    if (rng() < 0.09) out += pick(rng, ["~", "^", "'", " ", " "]);
+
+    if (map[lower] && rng() < 0.25) out += pick(rng, map[lower]);
+    else out += rng() < 0.2 ? ch.toUpperCase() : ch.toLowerCase();
+
+    if (rng() < 0.03) out += pick(rng, ["~", "^"]);
   }
   return out.trim();
 }
 
-const DEFAULT_RANGE = { n: [1, 100], seqStart: [1, 40], step: [1, 12] } as const;
+// Tuned to avoid extremes: no ultra-hard giant arithmetic, no super-trivial tiny math.
+const DEFAULT_RANGE = { n: [8, 55] } as const;
 
 function makeMath(rng: () => number): CaptchaItem {
   const { n } = DEFAULT_RANGE;
-  const a = rint(rng, n[0], n[1]);
-  const b = rint(rng, n[0], n[1]);
-  const op = pick(rng, ["+", "-", "*"] as const);
-  const answer = op === "+" ? a + b : op === "-" ? a - b : a * b;
+
+  let a = rint(rng, n[0], n[1]);
+  let b = rint(rng, n[0], n[1]);
+  const op = pick(rng, ["+", "-"] as const);
+
+  // avoid very easy cases (same numbers / tiny deltas)
+  if (Math.abs(a - b) < 3) b += 4;
+
+  const answer = op === "+" ? a + b : a - b;
+
   return {
     captcha: `what is ${a} ${op} ${b}?`,
-    answer: String(answer),
+    answer: String(answer)
   };
 }
 
@@ -78,46 +82,16 @@ function makeNoisy(rng: () => number): CaptchaItem {
   return { ...base, captcha: toNoisy(base.captcha, rng) };
 }
 
-function makeSequence(rng: () => number): CaptchaItem {
-  const { seqStart, step } = DEFAULT_RANGE;
-  const start = rint(rng, seqStart[0], seqStart[1]);
-  const d = rint(rng, step[0], step[1]);
-  const len = 4;
-  const arr = Array.from({ length: len }, (_, i) => start + i * d);
-  return {
-    captcha: `what comes next: ${arr.join(", ")}, ?`,
-    answer: String(start + len * d),
-  };
-}
-
-function makeCompare(rng: () => number): CaptchaItem {
-  const { n } = DEFAULT_RANGE;
-  const a = rint(rng, n[0], n[1]);
-  let b = rint(rng, n[0], n[1]);
-  if (a === b) b += 1;
-  const answer = a > b ? "A" : "B";
-  const prompt = pick(rng, [
-    `which is larger? A=${a}, B=${b}. answer with A or B`,
-    `pick the bigger value: A=${a} and B=${b}. return A or B`,
-    `agent check: larger number? A=${a}, B=${b} (A/B only)`
-  ]);
-  return {
-    captcha: prompt,
-    answer,
-  };
-}
-
 function makeAgentWordProblem(rng: () => number): CaptchaItem {
   const { n } = DEFAULT_RANGE;
   const a = rint(rng, n[0], n[1]);
   const b = rint(rng, n[0], n[1]);
 
-  const nounsA = ["molties", "clawbots", "neotons", "shell-points", "reef-units"];
-  const nounsB = ["moltbots", "clawlets", "drift-units", "shard-bits", "reeflets"];
+  const nounsA = ["molties", "clawbots", "neotons", "shell points", "reef units"];
+  const nounsB = ["moltbots", "clawlets", "drift units", "shard bits", "reeflets"];
 
   const left = pick(rng, nounsA);
   const right = pick(rng, nounsB);
-
   const mode = pick(rng, ["subtract_from", "add_to", "double_then_minus"] as const);
 
   let rawPrompt = "";
@@ -127,42 +101,40 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
     answer = a - b;
     rawPrompt = pick(rng, [
       `subtract ${b} ${right} from ${a} ${left}`,
-      `take ${a}${left} and remove ${b} ${right}`,
-      `starting with ${a} ${left}, minus ${b}${right}`
+      `start with ${a} ${left} and remove ${b} ${right}`
     ]);
   } else if (mode === "add_to") {
     answer = a + b;
     rawPrompt = pick(rng, [
       `add ${b} ${right} to ${a} ${left}`,
-      `you have ${a}${left}; gain ${b} ${right}. total?`,
-      `${a} ${left} + ${b}${right} = ?`
+      `you have ${a} ${left}, gain ${b} ${right}, total?`
     ]);
   } else {
-    const x = rint(rng, Math.max(1, Math.floor(n[0] / 2)), n[1]);
-    const y = rint(rng, Math.max(1, Math.floor(n[0] / 2)), n[1]);
+    // keep this bounded so it doesn't become absurdly hard
+    const x = rint(rng, 8, 35);
+    const y = rint(rng, 6, 28);
     answer = x * 2 - y;
     rawPrompt = pick(rng, [
       `double ${x} ${left} then subtract ${y} ${right}`,
-      `2*${x}${left} - ${y}${right} => ?`,
       `agent math: twice ${x}, minus ${y}`
     ]);
   }
 
-  const noisy = rng() < 0.8 ? toNoisy(rawPrompt, rng) : rawPrompt;
+  const noisy = rng() < 0.65 ? toNoisy(rawPrompt, rng) : rawPrompt;
 
   return {
     captcha: noisy,
-    answer: String(answer),
+    answer: String(answer)
   };
 }
 
 function generateOne(rng: () => number): CaptchaItem {
-  const family = pick(rng, ["math", "noisy", "sequence", "compare", "agent"] as const);
+  // keep family space focused to reduce answer-shape variance
+  const family = pick(rng, ["math", "noisy", "agent"] as const);
+
   switch (family) {
     case "math": return makeMath(rng);
     case "noisy": return makeNoisy(rng);
-    case "sequence": return makeSequence(rng);
-    case "compare": return makeCompare(rng);
     case "agent": return makeAgentWordProblem(rng);
     default: return makeMath(rng);
   }
@@ -187,7 +159,8 @@ export default {
     if (req.method === "GET" && url.pathname === "/generate") {
       const rng = makeRng();
       const captcha = generateOne(rng);
-      const context = "Proof of Claw is a captcha designed to block humans and malicious scripts while allowing reasoning agents & LLMs through. The next line is a slightly obfuscated math-style challenge. Return only the final value.";
+      const context = "Proof of Claw is a captcha designed to block humans and brittle scripts while allowing reasoning agents and LLMs through. The next line is a slightly obfuscated math challenge. Return only the final numeric value.";
+
       return json({
         context,
         captcha: captcha.captcha,
