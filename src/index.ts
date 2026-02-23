@@ -58,6 +58,8 @@ function toNoisy(text: string, rng: () => number): string {
 
 // Tuned to avoid extremes: no ultra-hard giant arithmetic, no super-trivial tiny math.
 const DEFAULT_RANGE = { n: [8, 55] } as const;
+const NOUNS_A = ["apples", "dogs", "cats", "books", "coins"];
+const NOUNS_B = ["oranges", "cars", "chairs", "pens", "balls"];
 
 function makeMath(rng: () => number): CaptchaItem {
   const { n } = DEFAULT_RANGE;
@@ -69,10 +71,23 @@ function makeMath(rng: () => number): CaptchaItem {
   // avoid very easy cases (same numbers / tiny deltas)
   if (Math.abs(a - b) < 3) b += 4;
 
+  const left = pick(rng, NOUNS_A);
+  const right = pick(rng, NOUNS_B);
+
   const answer = op === "+" ? a + b : a - b;
 
+  const prompt = op === "+"
+    ? pick(rng, [
+        `add ${a} ${left} and ${b} ${right}`,
+        `what is ${a} ${left} plus ${b} ${right}?`
+      ])
+    : pick(rng, [
+        `subtract ${b} ${right} from ${a} ${left}`,
+        `what is ${a} ${left} minus ${b} ${right}?`
+      ]);
+
   return {
-    captcha: `what is ${a} ${op} ${b}?`,
+    captcha: prompt,
     answer: String(answer)
   };
 }
@@ -83,11 +98,8 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
   const a = rint(rng, n[0], n[1]);
   const b = rint(rng, n[0], n[1]);
 
-  const nounsA = ["apples", "dogs", "cats", "books", "coins"];
-  const nounsB = ["oranges", "cars", "chairs", "pens", "balls"];
-
-  const left = pick(rng, nounsA);
-  const right = pick(rng, nounsB);
+  const left = pick(rng, NOUNS_A);
+  const right = pick(rng, NOUNS_B);
   const mode = pick(rng, ["subtract_from", "add_to", "double_then_minus"] as const);
 
   let rawPrompt = "";
