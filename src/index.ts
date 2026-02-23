@@ -1,11 +1,8 @@
 interface GenerateRequest {
   count?: number;
-  difficulty?: "easy" | "medium" | "hard";
   style?: "math" | "noisy" | "sequence" | "compare" | "agent" | "mixed";
   seed?: string;
 }
-
-type Difficulty = "easy" | "medium" | "hard";
 
 interface CaptchaItem {
   captcha: string;
@@ -64,17 +61,13 @@ function toNoisy(text: string, rng: () => number): string {
   return out.trim();
 }
 
-function ranges(diff: Difficulty) {
-  if (diff === "easy") return { n: [1, 20], seqStart: [1, 10], step: [1, 5] };
-  if (diff === "medium") return { n: [10, 100], seqStart: [5, 40], step: [2, 12] };
-  return { n: [50, 500], seqStart: [20, 120], step: [5, 30] };
-}
+const DEFAULT_RANGE = { n: [1, 100], seqStart: [1, 40], step: [1, 12] } as const;
 
-function makeMath(rng: () => number, difficulty: Difficulty): CaptchaItem {
-  const { n } = ranges(difficulty);
+function makeMath(rng: () => number): CaptchaItem {
+  const { n } = DEFAULT_RANGE;
   const a = rint(rng, n[0], n[1]);
   const b = rint(rng, n[0], n[1]);
-  const op = pick(rng, difficulty === "easy" ? ["+", "-"] : ["+", "-", "*"] as const);
+  const op = pick(rng, ["+", "-", "*"] as const);
   const answer = op === "+" ? a + b : op === "-" ? a - b : a * b;
   return {
     captcha: `what is ${a} ${op} ${b}?`,
@@ -82,13 +75,13 @@ function makeMath(rng: () => number, difficulty: Difficulty): CaptchaItem {
   };
 }
 
-function makeNoisy(rng: () => number, difficulty: Difficulty): CaptchaItem {
-  const base = makeMath(rng, difficulty);
+function makeNoisy(rng: () => number): CaptchaItem {
+  const base = makeMath(rng);
   return { ...base, captcha: toNoisy(base.captcha, rng) };
 }
 
-function makeSequence(rng: () => number, difficulty: Difficulty): CaptchaItem {
-  const { seqStart, step } = ranges(difficulty);
+function makeSequence(rng: () => number): CaptchaItem {
+  const { seqStart, step } = DEFAULT_RANGE;
   const start = rint(rng, seqStart[0], seqStart[1]);
   const d = rint(rng, step[0], step[1]);
   const len = 4;
@@ -99,8 +92,8 @@ function makeSequence(rng: () => number, difficulty: Difficulty): CaptchaItem {
   };
 }
 
-function makeCompare(rng: () => number, difficulty: Difficulty): CaptchaItem {
-  const { n } = ranges(difficulty);
+function makeCompare(rng: () => number): CaptchaItem {
+  const { n } = DEFAULT_RANGE;
   const a = rint(rng, n[0], n[1]);
   let b = rint(rng, n[0], n[1]);
   if (a === b) b += 1;
@@ -116,8 +109,8 @@ function makeCompare(rng: () => number, difficulty: Difficulty): CaptchaItem {
   };
 }
 
-function makeAgentWordProblem(rng: () => number, difficulty: Difficulty): CaptchaItem {
-  const { n } = ranges(difficulty);
+function makeAgentWordProblem(rng: () => number): CaptchaItem {
+  const { n } = DEFAULT_RANGE;
   const a = rint(rng, n[0], n[1]);
   const b = rint(rng, n[0], n[1]);
 
@@ -165,18 +158,18 @@ function makeAgentWordProblem(rng: () => number, difficulty: Difficulty): Captch
   };
 }
 
-function generateOne(rng: () => number, style: GenerateRequest["style"], difficulty: Difficulty): CaptchaItem {
+function generateOne(rng: () => number, style: GenerateRequest["style"]): CaptchaItem {
   const chosen = style === "mixed"
     ? pick(rng, ["math", "noisy", "sequence", "compare", "agent"] as const)
     : style;
 
   switch (chosen) {
-    case "math": return makeMath(rng, difficulty);
-    case "noisy": return makeNoisy(rng, difficulty);
-    case "sequence": return makeSequence(rng, difficulty);
-    case "compare": return makeCompare(rng, difficulty);
-    case "agent": return makeAgentWordProblem(rng, difficulty);
-    default: return makeMath(rng, difficulty);
+    case "math": return makeMath(rng);
+    case "noisy": return makeNoisy(rng);
+    case "sequence": return makeSequence(rng);
+    case "compare": return makeCompare(rng);
+    case "agent": return makeAgentWordProblem(rng);
+    default: return makeMath(rng);
   }
 }
 
@@ -196,19 +189,15 @@ export default {
       let body: GenerateRequest = {};
       try { body = await req.json(); } catch { /* defaults */ }
 
-      const difficulty = (body.difficulty ?? "easy") as Difficulty;
       const style = (body.style ?? "mixed");
       const count = clamp(Number(body.count ?? 5), 1, 50);
 
-      if (!["easy", "medium", "hard"].includes(difficulty)) {
-        return json({ error: "difficulty must be easy|medium|hard" }, 400);
-      }
       if (!["math", "noisy", "sequence", "compare", "agent", "mixed"].includes(style)) {
         return json({ error: "style must be math|noisy|sequence|compare|agent|mixed" }, 400);
       }
 
       const rng = makeRng(body.seed);
-      const captchas = Array.from({ length: count }, () => generateOne(rng, style as GenerateRequest["style"], difficulty));
+      const captchas = Array.from({ length: count }, () => generateOne(rng, style as GenerateRequest["style"]));
 
       return json({
         captchas,
