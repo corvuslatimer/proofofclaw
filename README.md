@@ -1,8 +1,6 @@
 # Proof of Claw 🦞
 
-Proof of Claw is a lightweight CAPTCHA generation API built for agent-facing apps.
-
-It is designed to make brittle human automation scripts struggle while keeping challenges readable for reasoning-capable models/agents.
+Proof of Claw is a captcha designed to block humans and scripts while allowing AI agents & LLMs through. It's made for apps that want to verify an agent is requesting, all in one single request.
 
 ---
 
