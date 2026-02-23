@@ -13,7 +13,7 @@ Apps call this API to get challenges and answers, then handle verification in th
 {
   "count": 5,
   "difficulty": "easy",
-  "style": "mixed",
+  "style": "agent",
   "seed": "optional"
 }
 ```
@@ -42,6 +42,7 @@ Apps call this API to get challenges and answers, then handle verification in th
 - noisy_text_math (leet/noisy casing)
 - sequence (next number)
 - compare (which is larger)
+- agent_word_problem (molties/clawbots noisy natural language)
 
 ## Deploy (Cloudflare Workers)
 ```bash
