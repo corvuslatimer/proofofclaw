@@ -6,14 +6,10 @@ interface GenerateRequest {
 }
 
 type Difficulty = "easy" | "medium" | "hard";
-type Kind = "math" | "noisy_text_math" | "sequence" | "compare" | "agent_word_problem";
 
 interface CaptchaItem {
-  id: string;
   captcha: string;
   answer: string;
-  kind: Kind;
-  difficulty: Difficulty;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -51,12 +47,6 @@ function pick<T>(rng: () => number, arr: T[]): T {
   return arr[Math.floor(rng() * arr.length)];
 }
 
-function randomId(rng: () => number): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let out = "claw_";
-  for (let i = 0; i < 12; i++) out += chars[Math.floor(rng() * chars.length)];
-  return out;
-}
 
 function toNoisy(text: string, rng: () => number): string {
   const map: Record<string, string[]> = {
@@ -87,17 +77,14 @@ function makeMath(rng: () => number, difficulty: Difficulty): CaptchaItem {
   const op = pick(rng, difficulty === "easy" ? ["+", "-"] : ["+", "-", "*"] as const);
   const answer = op === "+" ? a + b : op === "-" ? a - b : a * b;
   return {
-    id: randomId(rng),
     captcha: `what is ${a} ${op} ${b}?`,
     answer: String(answer),
-    kind: "math",
-    difficulty
   };
 }
 
 function makeNoisy(rng: () => number, difficulty: Difficulty): CaptchaItem {
   const base = makeMath(rng, difficulty);
-  return { ...base, captcha: toNoisy(base.captcha, rng), kind: "noisy_text_math" };
+  return { ...base, captcha: toNoisy(base.captcha, rng) };
 }
 
 function makeSequence(rng: () => number, difficulty: Difficulty): CaptchaItem {
@@ -107,11 +94,8 @@ function makeSequence(rng: () => number, difficulty: Difficulty): CaptchaItem {
   const len = 4;
   const arr = Array.from({ length: len }, (_, i) => start + i * d);
   return {
-    id: randomId(rng),
     captcha: `what comes next: ${arr.join(", ")}, ?`,
     answer: String(start + len * d),
-    kind: "sequence",
-    difficulty
   };
 }
 
@@ -127,11 +111,8 @@ function makeCompare(rng: () => number, difficulty: Difficulty): CaptchaItem {
     `agent check: larger number? A=${a}, B=${b} (A/B only)`
   ]);
   return {
-    id: randomId(rng),
     captcha: prompt,
     answer,
-    kind: "compare",
-    difficulty
   };
 }
 
@@ -179,11 +160,8 @@ function makeAgentWordProblem(rng: () => number, difficulty: Difficulty): Captch
   const noisy = rng() < 0.8 ? toNoisy(rawPrompt, rng) : rawPrompt;
 
   return {
-    id: randomId(rng),
     captcha: noisy,
     answer: String(answer),
-    kind: "agent_word_problem",
-    difficulty
   };
 }
 
@@ -236,7 +214,6 @@ export default {
         captchas,
         meta: {
           count: captchas.length,
-          difficulty,
           style,
           deterministic: Boolean(body.seed)
         }
