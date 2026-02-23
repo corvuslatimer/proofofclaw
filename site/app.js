@@ -10,7 +10,8 @@ btn?.addEventListener('click', async () => {
     const res = await fetch('https://api.proofofclaw.lol/generate', { method: 'GET' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    captcha.textContent = data?.captcha ?? '(missing captcha)';
+    const ctx = data?.context ? `${data.context}\n\n` : '';
+    captcha.textContent = `${ctx}${data?.captcha ?? '(missing captcha)'}`;
     answer.textContent = data?.answer ?? '(missing answer)';
     box.classList.remove('hidden');
   } catch (e) {

@@ -187,9 +187,10 @@ export default {
     if (req.method === "GET" && url.pathname === "/generate") {
       const rng = makeRng();
       const captcha = generateOne(rng);
-      const preamble = "Proof of Claw is a captcha designed to block humans and brittle human scripts while allowing reasoning agents through.\nBefore you is a slightly obfuscated math-style problem. Answer with only the final value.";
+      const context = "Proof of Claw is designed to block humans and brittle scripts while allowing reasoning agents through. The next line is a slightly obfuscated math-style challenge. Return only the final value.";
       return json({
-        captcha: `${preamble}\n\n${captcha.captcha}`,
+        context,
+        captcha: captcha.captcha,
         answer: captcha.answer
       });
     }
