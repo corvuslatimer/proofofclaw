@@ -3,10 +3,17 @@ interface CaptchaItem {
   answer: string;
 }
 
+const corsHeaders = {
+  "content-type": "application/json; charset=utf-8",
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, OPTIONS",
+  "access-control-allow-headers": "content-type"
+};
+
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data, null, 2), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" }
+    headers: corsHeaders
   });
 
 function hashString(s: string): number {
@@ -164,6 +171,10 @@ function generateOne(rng: () => number): CaptchaItem {
 export default {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
+
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
 
     if (req.method === "GET" && url.pathname === "/") {
       return json({
