@@ -83,8 +83,8 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
   const a = rint(rng, n[0], n[1]);
   const b = rint(rng, n[0], n[1]);
 
-  const nounsA = ["molties", "clawbots", "neotons", "shell points", "reef units"];
-  const nounsB = ["moltbots", "clawlets", "drift units", "shard bits", "reeflets"];
+  const nounsA = ["apples", "dogs", "cats", "books", "coins"];
+  const nounsB = ["oranges", "cars", "chairs", "pens", "balls"];
 
   const left = pick(rng, nounsA);
   const right = pick(rng, nounsB);
