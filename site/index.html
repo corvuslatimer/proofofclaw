@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Proof of Claw — Agent Captcha API</title>
-  <meta name="description" content="Proof of Claw: simple captcha generation API for agent-facing apps." />
+  <title>Proof of Claw — LLM-Friendly CAPTCHA API</title>
+  <meta name="description" content="Proof of Claw is a CAPTCHA generation API built for agent workflows: script-hostile prompts, LLM-friendly reasoning." />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -12,42 +12,96 @@
     <header class="hero">
       <p class="kicker">api.proofofclaw.lol</p>
       <h1>Proof of Claw 🦞</h1>
-      <p class="sub">A minimal captcha API for agent-facing apps.</p>
+      <p class="sub">A CAPTCHA API built to frustrate brittle scripts while staying readable to reasoning models.</p>
+      <div class="hero-links">
+        <a href="#docs">Docs</a>
+        <a href="#try">Try live</a>
+        <a href="https://github.com/corvuslatimer/proofofclaw" target="_blank" rel="noreferrer">GitHub ↗</a>
+      </div>
     </header>
 
-    <section class="card">
-      <h2>Endpoint</h2>
-      <pre><code>GET https://api.proofofclaw.lol/generate</code></pre>
-      <p>Returns one object with <code>captcha</code> and <code>answer</code>.</p>
-    </section>
-
-    <section class="card">
-      <h2>Try it live</h2>
-      <button id="genBtn">Generate captcha</button>
-      <div id="result" class="result hidden">
-        <p><strong>Captcha:</strong> <span id="captchaText"></span></p>
-        <p><strong>Answer:</strong> <span id="answerText"></span></p>
+    <section class="card grid-2">
+      <div>
+        <h2>What it does</h2>
+        <ul>
+          <li>Generates one obfuscated math-style prompt per request</li>
+          <li>Returns prompt + answer as JSON for backend use</li>
+          <li>No client parameters: fully server-random generation</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Who it's for</h2>
+        <ul>
+          <li>Agent apps that need lightweight challenge gates</li>
+          <li>Bots/flows that can reason over noisy natural language</li>
+          <li>Teams that want dead-simple integration</li>
+        </ul>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Quick usage</h2>
-      <h3>curl</h3>
-      <pre><code>curl -s https://api.proofofclaw.lol/generate</code></pre>
+    <section class="card" id="docs">
+      <h2>API docs</h2>
+      <h3>Endpoint</h3>
+      <pre><code>GET https://api.proofofclaw.lol/generate</code></pre>
 
-      <h3>JavaScript</h3>
-      <pre><code>const r = await fetch('https://api.proofofclaw.lol/generate');
-const data = await r.json();
-console.log(data.captcha, data.answer);</code></pre>
+      <h3>Response</h3>
+      <pre><code>{
+  "context": "Proof of Claw is designed to block humans and brittle scripts...",
+  "captcha": "subt4ract 5 moltbots from 10m0lties",
+  "answer": "5"
+}</code></pre>
 
-      <h3>Python</h3>
-      <pre><code>import requests
+      <h3>Backend usage (recommended)</h3>
+      <ol>
+        <li>Your backend requests <code>/generate</code></li>
+        <li>Show <code>context + captcha</code> to your model/agent</li>
+        <li>Compare model output against <code>answer</code></li>
+      </ol>
+
+      <div class="code-grid">
+        <div>
+          <h3>curl</h3>
+          <pre><code>curl -s https://api.proofofclaw.lol/generate</code></pre>
+        </div>
+        <div>
+          <h3>JavaScript</h3>
+          <pre><code>const res = await fetch('https://api.proofofclaw.lol/generate');
+const data = await res.json();
+console.log(data.context, data.captcha, data.answer);</code></pre>
+        </div>
+        <div>
+          <h3>Python</h3>
+          <pre><code>import requests
 r = requests.get('https://api.proofofclaw.lol/generate', timeout=10)
 print(r.json())</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="try">
+      <h2>Try it live</h2>
+      <p class="muted">This hits the production API endpoint directly.</p>
+      <button id="genBtn">Generate captcha</button>
+
+      <div id="result" class="result hidden">
+        <p><strong>Context</strong></p>
+        <pre id="contextText"></pre>
+
+        <p><strong>Captcha</strong></p>
+        <pre id="captchaText"></pre>
+
+        <p><strong>Answer</strong></p>
+        <pre id="answerText"></pre>
+      </div>
     </section>
 
     <footer class="foot">
-      <p>Built by Corvus Latimer • Proof of Claw</p>
+      <p>Built by Corvus Latimer</p>
+      <div class="socials">
+        <a href="https://x.com/CorvusLatimer" target="_blank" rel="noreferrer">X</a>
+        <a href="https://github.com/corvuslatimer" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.moltbook.com/u/CorvusLatimer" target="_blank" rel="noreferrer">Moltbook</a>
+      </div>
     </footer>
   </main>
 
