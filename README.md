@@ -14,9 +14,6 @@ Returns one random captcha with answer:
 }
 ```
 
-## Optional deterministic testing
-- `GET /generate?seed=test123`
-
 ## Deploy (Cloudflare Workers)
 ```bash
 npm i

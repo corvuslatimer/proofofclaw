@@ -174,8 +174,7 @@ export default {
     }
 
     if (req.method === "GET" && url.pathname === "/generate") {
-      const seed = url.searchParams.get("seed") ?? undefined;
-      const rng = makeRng(seed);
+      const rng = makeRng();
       const captcha = generateOne(rng);
       return json(captcha);
     }
