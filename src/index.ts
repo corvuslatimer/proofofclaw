@@ -51,7 +51,6 @@ function toNoisy(text: string, rng: () => number): string {
     if (map[lower] && rng() < 0.25) out += pick(rng, map[lower]);
     else out += rng() < 0.2 ? ch.toUpperCase() : ch.toLowerCase();
 
-    if (rng() < 0.03) out += pick(rng, ["~", "^"]);
   }
   return out.trim();
 }
@@ -135,8 +134,8 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
 }
 
 function generateOne(rng: () => number): CaptchaItem {
-  const family = pick(rng, ["math", "agent"] as const);
-  const base = family === "agent" ? makeAgentWordProblem(rng) : makeMath(rng);
+  // Single-calculation only (no multi-step challenge families)
+  const base = makeMath(rng);
   // Always obfuscate lightly (never plain text)
   return { ...base, captcha: toNoisy(base.captcha, rng) };
 }
