@@ -1,9 +1,3 @@
-interface GenerateRequest {
-  count?: number;
-  style?: "math" | "noisy" | "sequence" | "compare" | "agent" | "mixed";
-  seed?: string;
-}
-
 interface CaptchaItem {
   captcha: string;
   answer: string;
@@ -14,8 +8,6 @@ const json = (data: unknown, status = 200) =>
     status,
     headers: { "content-type": "application/json; charset=utf-8" }
   });
-
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
 function hashString(s: string): number {
   let h = 2166136261;
@@ -43,7 +35,6 @@ function rint(rng: () => number, min: number, max: number): number {
 function pick<T>(rng: () => number, arr: T[]): T {
   return arr[Math.floor(rng() * arr.length)];
 }
-
 
 function toNoisy(text: string, rng: () => number): string {
   const map: Record<string, string[]> = {
@@ -158,12 +149,9 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
   };
 }
 
-function generateOne(rng: () => number, style: GenerateRequest["style"]): CaptchaItem {
-  const chosen = style === "mixed"
-    ? pick(rng, ["math", "noisy", "sequence", "compare", "agent"] as const)
-    : style;
-
-  switch (chosen) {
+function generateOne(rng: () => number): CaptchaItem {
+  const family = pick(rng, ["math", "noisy", "sequence", "compare", "agent"] as const);
+  switch (family) {
     case "math": return makeMath(rng);
     case "noisy": return makeNoisy(rng);
     case "sequence": return makeSequence(rng);
@@ -181,32 +169,15 @@ export default {
       return json({
         name: "Proof of Claw",
         ok: true,
-        endpoints: ["POST /v1/generate"]
+        endpoints: ["GET /generate"]
       });
     }
 
-    if (req.method === "POST" && url.pathname === "/v1/generate") {
-      let body: GenerateRequest = {};
-      try { body = await req.json(); } catch { /* defaults */ }
-
-      const style = (body.style ?? "mixed");
-      const count = clamp(Number(body.count ?? 5), 1, 50);
-
-      if (!["math", "noisy", "sequence", "compare", "agent", "mixed"].includes(style)) {
-        return json({ error: "style must be math|noisy|sequence|compare|agent|mixed" }, 400);
-      }
-
-      const rng = makeRng(body.seed);
-      const captchas = Array.from({ length: count }, () => generateOne(rng, style as GenerateRequest["style"]));
-
-      return json({
-        captchas,
-        meta: {
-          count: captchas.length,
-          style,
-          deterministic: Boolean(body.seed)
-        }
-      });
+    if (req.method === "GET" && url.pathname === "/generate") {
+      const seed = url.searchParams.get("seed") ?? undefined;
+      const rng = makeRng(seed);
+      const captcha = generateOne(rng);
+      return json(captcha);
     }
 
     return json({ error: "not found" }, 404);

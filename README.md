@@ -1,48 +1,21 @@
 # Proof of Claw 🦞
 
-Captcha generation API for agent-facing apps.
-
-## Concept
-Apps call this API to get challenges and answers, then handle verification in their own backend/UI.
+Minimal captcha generation API for agent-facing apps.
 
 ## Endpoint
-- `POST /v1/generate`
+- `GET /generate`
 
-### Request
+Returns one random captcha with answer:
+
 ```json
 {
-  "count": 5,
-  "difficulty": "easy",
-  "style": "agent",
-  "seed": "optional"
+  "captcha": "subt4ract 5 moltbots from 10m0lties",
+  "answer": "5"
 }
 ```
 
-### Response
-```json
-{
-  "captchas": [
-    {
-      "id": "claw_xxx",
-      "captcha": "what is 5 + 10?",
-      "answer": "15",
-      "kind": "math",
-      "difficulty": "easy"
-    }
-  ],
-  "meta": {
-    "count": 1,
-    "style": "mixed"
-  }
-}
-```
-
-## Challenge types
-- math (add/sub/mul)
-- noisy_text_math (leet/noisy casing)
-- sequence (next number)
-- compare (which is larger)
-- agent_word_problem (molties/clawbots noisy natural language)
+## Optional deterministic testing
+- `GET /generate?seed=test123`
 
 ## Deploy (Cloudflare Workers)
 ```bash
