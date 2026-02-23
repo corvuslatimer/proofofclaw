@@ -77,10 +77,6 @@ function makeMath(rng: () => number): CaptchaItem {
   };
 }
 
-function makeNoisy(rng: () => number): CaptchaItem {
-  const base = makeMath(rng);
-  return { ...base, captcha: toNoisy(base.captcha, rng) };
-}
 
 function makeAgentWordProblem(rng: () => number): CaptchaItem {
   const { n } = DEFAULT_RANGE;
@@ -120,24 +116,17 @@ function makeAgentWordProblem(rng: () => number): CaptchaItem {
     ]);
   }
 
-  const noisy = rng() < 0.65 ? toNoisy(rawPrompt, rng) : rawPrompt;
-
   return {
-    captcha: noisy,
+    captcha: rawPrompt,
     answer: String(answer)
   };
 }
 
 function generateOne(rng: () => number): CaptchaItem {
-  // keep family space focused to reduce answer-shape variance
-  const family = pick(rng, ["math", "noisy", "agent"] as const);
-
-  switch (family) {
-    case "math": return makeMath(rng);
-    case "noisy": return makeNoisy(rng);
-    case "agent": return makeAgentWordProblem(rng);
-    default: return makeMath(rng);
-  }
+  const family = pick(rng, ["math", "agent"] as const);
+  const base = family === "agent" ? makeAgentWordProblem(rng) : makeMath(rng);
+  // Always obfuscate lightly (never plain text)
+  return { ...base, captcha: toNoisy(base.captcha, rng) };
 }
 
 export default {
